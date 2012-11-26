@@ -8,8 +8,7 @@
   /*global jQuery:false _:false window:false */
   'use strict';
 
-  jQuery.widget('Midgard.midgardStorage', {
-    saveEnabled: true,
+  jQuery.widget('Midgard.midgardStorage', jQuery.Midgard.midgardStorageBase, {
     options: {
       // Whether to use localstorage
       localStorage: false,
@@ -38,90 +37,63 @@
     },
 
     _create: function () {
-      var widget = this;
-      this.changedModels = [];
-
       if (window.localStorage) {
         this.options.localStorage = true;
       }
+      // Call super, this will invoke _bindEditables.
+      jQuery.Midgard.midgardStorageBase.prototype._create.call(this);
 
-      this.vie = this.options.vie;
-
-      this.vie.entities.bind('add', function (model) {
-        // Add the back-end URL used by Backbone.sync
-        model.url = widget.options.url;
-        model.toJSON = model.toJSONLD;
-      });
-
-      widget._bindEditables();
-      if (widget.options.autoSave) {
-        widget._autoSave();
-      }
-    },
-
-    _autoSave: function () {
       var widget = this;
-      widget.saveEnabled = true;
+      var eventPrefix = 'midgardstorage';
+      // Bind savedentity event to update/remove localStorage.
+      this.element.bind(eventPrefix + 'savedentity' , function(event,options) {
+        widget._removeLocal(options.entity);
+      });
 
-      var doAutoSave = function () {
-        if (!widget.saveEnabled) {
-          return;
+      // Show notification on save.
+      this.element.bind(eventPrefix + 'saved', function(event,options) {
+        var notification_msg;
+        if (options.totalSaved > 1) {
+          notification_msg = _.template(widget.options.localize('saveSuccessMultiple', widget.options.language), {
+            number: options.totalSaved
+          });
+        } else {
+          notification_msg = _.template(widget.options.localize('saveSuccess', widget.options.language), {
+            label: options.changedModels[0].getSubjectUri()
+          });
         }
-
-        if (widget.changedModels.length === 0) {
-          return;
-        }
-
-        widget.saveRemoteAll({
-          // We make autosaves silent so that potential changes from server
-          // don't disrupt user while writing.
-          silent: true
+        // @todo: probably here's a better place to actually assemble the
+        jQuery('body').midgardNotifications('create', {
+          body: notification_msg
         });
-      };
-
-      var timeout = window.setInterval(doAutoSave, widget.options.autoSaveInterval);
-
-      this.element.bind('startPreventSave', function () {
-        if (timeout) {
-          window.clearInterval(timeout);
-          timeout = null;
-        }
-        widget.disableAutoSave();
-      });
-      this.element.bind('stopPreventSave', function () {
-        if (!timeout) {
-          timeout = window.setInterval(doAutoSave, widget.options.autoSaveInterval);
-        }
-        widget.enableAutoSave();
       });
 
-    },
-
-    enableAutoSave: function () {
-      this.saveEnabled = true;
-    },
-
-    disableAutoSave: function () {
-      this.saveEnabled = false;
+      // Show notifications on error.
+      this.element.bind(eventPrefix + 'error', function(event,options) {
+        var notification_msg = _.template(widget.options.localize('saveError', widget.options.language), {
+          error: options.error.responseText || ''
+        });
+        jQuery('body').midgardNotifications('create', {
+          body: notification_msg,
+          timeout: 0
+        });
+      });
     },
 
     _bindEditables: function () {
+      // Call super.
+      jQuery.Midgard.midgardStorageBase.prototype._bindEditables.call(this);
+
       var widget = this;
       this.restorables = [];
       var restorer;
 
       widget.element.bind(widget.options.editableNs + 'changed', function (event, options) {
-        if (_.indexOf(widget.changedModels, options.instance) === -1) {
-          widget.changedModels.push(options.instance);
-        }
         widget._saveLocal(options.instance);
       });
 
-      widget.element.bind(widget.options.editableNs + 'disable', function (event, options) {
-        widget.revertChanges(options.instance);
-      });
-
       widget.element.bind(widget.options.editableNs + 'enable', function (event, options) {
+        // Duplicates code in midgardStorageBase but we can't guarantee order of execution.
         if (!options.instance._originalAttributes) {
           options.instance._originalAttributes = _.clone(options.instance.attributes);
         }
@@ -154,6 +126,8 @@
           widget.changedModels.push(options.instance);
         }
       });
+
+
     },
 
     checkRestore: function () {
@@ -245,126 +219,8 @@
       this.restorables = [];
     },
 
-    saveReferences: function (model) {
-      _.each(model.attributes, function (value, property) {
-        if (!value || !value.isCollection) {
-          return;
-        }
-
-        value.each(function (referencedModel) {
-          if (this.changedModels.indexOf(referencedModel) !== -1) {
-            // The referenced model is already in the save queue
-            return;
-          }
-
-          if (referencedModel.isNew() && this.options.saveReferencedNew) {
-            return referencedModel.save();
-          }
-
-          if (referencedModel.hasChanged() && this.options.saveReferencedChanged) {
-            return referencedModel.save();
-          }
-        }, this);
-      }, this);
-    },
-
-    saveRemote: function (model, options) {
-      // Optionally handle entities referenced in this model first
-      this.saveReferences(model);
-
-      this._trigger('saveentity', null, {
-        entity: model,
-        options: options
-      });
-
-      var widget = this;
-      model.save(null, _.extend({}, options, {
-        success: function (m, response) {
-          // From now on we're going with the values we have on server
-          model._originalAttributes = _.clone(model.attributes);
-          widget._removeLocal(model);
-          window.setTimeout(function () {
-            // Remove the model from the list of changed models after saving
-            widget.changedModels.splice(widget.changedModels.indexOf(model), 1);
-          }, 0);
-          if (_.isFunction(options.success)) {
-            options.success(m, response);
-          }
-          widget._trigger('savedentity', null, {
-            entity: model,
-            options: options
-          });
-        },
-        error: function (m, response) {
-          if (_.isFunction(options.error)) {
-            options.error(m, response);
-          }
-        }
-      }));
-    },
-
-    saveRemoteAll: function (options) {
-      var widget = this;
-      if (widget.changedModels.length === 0) {
-        return;
-      }
-
-      widget._trigger('save', null, {
-        entities: widget.changedModels,
-        options: options,
-        // Deprecated
-        models: widget.changedModels
-      });
-
-      var notification_msg;
-      var needed = widget.changedModels.length;
-      if (needed > 1) {
-        notification_msg = _.template(widget.options.localize('saveSuccessMultiple', widget.options.language), {
-          number: needed
-        });
-      } else {
-        notification_msg = _.template(widget.options.localize('saveSuccess', widget.options.language), {
-          label: widget.changedModels[0].getSubjectUri()
-        });
-      }
-
-      widget.disableAutoSave();
-      _.each(widget.changedModels, function (model) {
-        this.saveRemote(model, {
-          success: function (m, response) {
-            needed--;
-            if (needed <= 0) {
-              // All models were happily saved
-              widget._trigger('saved', null, {
-                options: options
-              });
-              if (options && _.isFunction(options.success)) {
-                options.success(m, response);
-              }
-              jQuery('body').midgardNotifications('create', {
-                body: notification_msg
-              });
-              widget.enableAutoSave();
-            }
-          },
-          error: function (m, err) {
-            if (options && _.isFunction(options.error)) {
-              options.error(m, err);
-            }
-            jQuery('body').midgardNotifications('create', {
-              body: _.template(widget.options.localize('saveError', widget.options.language), {
-                error: err.responseText || ''
-              }),
-              timeout: 0
-            });
-
-            widget._trigger('error', null, {
-              instance: model
-            });
-          }
-        });
-      }, this);
-    },
+    // @todo: move widget._removeLocal(model); into a 'savedentity' event handler.
+    // saveRemote: function (model, options) {
 
     _saveLocal: function (model) {
       if (!this.options.localStorage) {
