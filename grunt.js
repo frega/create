@@ -20,13 +20,33 @@ module.exports = function(grunt) {
       },
       editonly: {
         src: [
+          // no ui, no toolbar, no notifications.
           'src/jquery.Midgard.midgardEditable.js',
           'src/jquery.Midgard.midgardStorageBase.js',
           'src/midgardCreate.localize.js',
-          'src/editingWidgets/*.js',
+          // currently one collection widget needs to be provided @see #151.
+          'src/collectionWidgets/jquery.Midgard.midgardCreateCollectionAdd.js',
+          'src/editingWidgets/jquery.Midgard.midgardEditableBase.js',
+          'src/editingWidgets/jquery.Midgard.midgardEditableEditorAloha.js',
           'locale/locale_en.js'
         ],
         dest: 'examples/create-editonly.js'
+      },
+      'basic': {
+        src: [
+          'src/jquery.Midgard.midgardCreate.js',
+          'src/jquery.Midgard.midgardEditable.js',
+          'src/jquery.Midgard.midgardToolbar.js',
+          'src/jquery.Midgard.midgardNotifications.js',
+          'src/jquery.Midgard.midgardStorageBase.js',
+          'src/midgardCreate.localize.js',
+          /* 'src/collectionWidgets/*.js',*/
+          'src/editingWidgets/jquery.Midgard.midgardEditableBase.js',
+          'src/editingWidgets/jquery.Midgard.midgardEditorHallo.js',
+          'src/storageWidgets/jquery.Midgard.midgardStorage.js',
+          'locale/locale_en.js'
+        ],
+        dest: 'examples/create-basic.js'
       }
     },
     // let's only concatenate, not minify whilst watching
@@ -42,6 +62,10 @@ module.exports = function(grunt) {
       'editonly':{
         src: ['examples/create-editonly.js'],
         dest: 'examples/create-editonly-min.js'
+      },
+      'basic': {
+        src: ['examples/create-basic.js'],
+        dest: 'examples/create-basic-min.js'
       }
     },
     jshint: {
