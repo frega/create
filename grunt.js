@@ -42,7 +42,7 @@ module.exports = function(grunt) {
           'src/midgardCreate.localize.js',
           'src/collectionWidgets/jquery.Midgard.midgardCreateCollectionAdd.js',
           'src/editingWidgets/jquery.Midgard.midgardEditableBase.js',
-          'src/editingWidgets/jquery.Midgard.midgardEditorHallo.js',
+          'src/editingWidgets/jquery.Midgard.midgardEditableEditorHallo.js',
           'src/storageWidgets/jquery.Midgard.midgardStorage.js',
           'locale/locale_en.js'
         ],
