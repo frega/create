@@ -40,7 +40,7 @@ module.exports = function(grunt) {
           'src/jquery.Midgard.midgardNotifications.js',
           'src/jquery.Midgard.midgardStorageBase.js',
           'src/midgardCreate.localize.js',
-          /* 'src/collectionWidgets/*.js',*/
+          'src/collectionWidgets/midgardCreateCollectionAdd.js',
           'src/editingWidgets/jquery.Midgard.midgardEditableBase.js',
           'src/editingWidgets/jquery.Midgard.midgardEditorHallo.js',
           'src/storageWidgets/jquery.Midgard.midgardStorage.js',
