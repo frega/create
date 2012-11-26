@@ -34,7 +34,6 @@ mergeEdit = (k) ->
   series [
     (sh "cp src/jquery.Midgard.midgardEditable.js merged/")
     (sh "cp src/jquery.Midgard.midgardStorage.js merged/")
-    (sh "cp src/collectionWidgets/*.js merged/")
     (sh "cp src/editingWidgets/*.js merged/")
     (sh "cp locale/locale_en.js merged/")
   ], k
