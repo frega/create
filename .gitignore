@@ -3,4 +3,3 @@ merged/
 npm-debug.log
 .DS_Store
 examples/*.jsbak
-examples/create-editonly*
