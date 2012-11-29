@@ -62,7 +62,6 @@
             label: options.changedModels[0].getSubjectUri()
           });
         }
-        // @todo: probably here's a better place to actually assemble the
         jQuery('body').midgardNotifications('create', {
           body: notification_msg
         });
@@ -218,9 +217,6 @@
       }
       this.restorables = [];
     },
-
-    // @todo: move widget._removeLocal(model); into a 'savedentity' event handler.
-    // saveRemote: function (model, options) {
 
     _saveLocal: function (model) {
       if (!this.options.localStorage) {

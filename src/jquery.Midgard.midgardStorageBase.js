@@ -98,6 +98,9 @@
     _bindEditables: function () {
       var widget = this;
 
+      console.log('_bindEditables', widget.options.editableNs);
+
+
       widget.element.bind(widget.options.editableNs + 'changed', function (event, options) {
         if (_.indexOf(widget.changedModels, options.instance) === -1) {
           widget.changedModels.push(options.instance);
@@ -105,6 +108,7 @@
       });
 
       widget.element.bind(widget.options.editableNs + 'disable', function (event, options) {
+        console.log('disable', options);
         widget.revertChanges(options.instance);
       });
 
@@ -220,10 +224,12 @@
     },
 
     revertChanges: function (model) {
+
       var widget = this;
 
       // Remove unsaved collection members
       if (!model) { return; }
+      debugger ;
       _.each(model.attributes, function (attributeValue, property) {
         if (attributeValue instanceof widget.vie.Collection) {
           var removables = [];
